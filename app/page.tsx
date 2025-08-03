@@ -28,26 +28,7 @@ export default function Home() {
           priority
         />
 
-        <div className="flex gap-4">
-          <Link
-            className="cta-button"
-            href="/projects"
-          >
-            Projects
-          </Link>
-          <a
-            className="cta-button"
-            href="/contact"
-          >
-            Contact
-          </a>
-          <a
-            className="cta-button"
-            href="/resume.pdf"
-          >
-            Resume
-          </a>
-        </div>
+        
 
         <section className="featured-projects">
           <h2 className="text-3xl font-semibold">Featured Projects</h2>
