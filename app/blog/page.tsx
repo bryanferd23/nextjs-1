@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getAllBlogPosts } from "../../lib/content";
 import { BlogPost } from "../../types/content";
 import type { Metadata } from "next";
+import HoverCard from "../../components/animations/HoverCard";
+import LinkHover from "../../components/animations/LinkHover";
+import FadeInUp from "../../components/animations/FadeInUp";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -28,8 +31,10 @@ export default function BlogPage() {
 
         {blogPosts.length > 0 ? (
           <div className="blog-posts-list grid gap-8">
-            {blogPosts.map((post) => (
-              <BlogPostCard key={post.slug} post={post} />
+            {blogPosts.map((post, index) => (
+              <FadeInUp key={post.slug} delay={index * 0.1}>
+                <BlogPostCard post={post} />
+              </FadeInUp>
             ))}
           </div>
         ) : (
@@ -47,11 +52,13 @@ export default function BlogPage() {
 // Blog Post Card Component
 function BlogPostCard({ post }: { post: BlogPost }) {
   return (
-    <article className="blog-post-card border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow">
+    <HoverCard className="blog-post-card border border-gray-200 dark:border-gray-700 rounded-lg p-6">
       <header className="mb-4">
         <h2 className="text-2xl font-semibold mb-2">
-          <Link href={`/blog/${post.slug}`} className="hover:text-blue-600 transition-colors">
-            {post.title}
+          <Link href={`/blog/${post.slug}`}>
+            <LinkHover className="text-gray-900 dark:text-gray-100">
+              {post.title}
+            </LinkHover>
           </Link>
         </h2>
         <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
@@ -88,14 +95,16 @@ function BlogPostCard({ post }: { post: BlogPost }) {
       <footer className="flex justify-between items-center">
         <Link
           href={`/blog/${post.slug}`}
-          className="text-blue-600 hover:underline text-sm font-medium inline-flex items-center gap-1"
+          className="text-sm font-medium inline-flex items-center gap-1"
         >
-          Read More 
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
+          <LinkHover className="text-blue-600">
+            Read More 
+            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </LinkHover>
         </Link>
       </footer>
-    </article>
+    </HoverCard>
   );
 }

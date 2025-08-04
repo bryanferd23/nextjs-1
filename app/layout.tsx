@@ -3,15 +3,22 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navigation from "../components/Navigation";
 import SkipToContent from "../components/SkipToContent";
+import { ThemeProvider } from "../contexts/ThemeContext";
+import Analytics from "../components/Analytics";
+import AccessibilityHelper from "../components/AccessibilityHelper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -57,15 +64,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SkipToContent />
-        <Navigation />
-        <div id="main-content">
-          {children}
-        </div>
+        <ThemeProvider>
+          <SkipToContent />
+          <Navigation />
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
+          <Analytics />
+          <AccessibilityHelper />
+        </ThemeProvider>
       </body>
     </html>
   );

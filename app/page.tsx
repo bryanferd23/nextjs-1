@@ -1,6 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getFeaturedProjects } from "../lib/content";
+import HeroSection from "../components/HeroSection";
+import PageTransition from "../components/animations/PageTransition";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,74 +16,71 @@ export const metadata: Metadata = {
 export default function Home() {
   const featuredProjects = getFeaturedProjects(3);
   return (
-    <div className="font-sans min-h-screen p-8 pb-20 sm:p-20">
-      <main className="flex flex-col items-center gap-10">
-        <h1 className="text-4xl font-bold">Full-Stack Developer</h1>
-        <p className="text-xl text-center max-w-prose">Crafting digital experiences with modern technologies and innovative solutions</p>
-        <Image
-          className="rounded-full"
-          src="/next.svg"
-          alt="Profile Picture"
-          width={180}
-          height={180}
-          priority
-        />
-
-        
-
+    <PageTransition className="font-sans">
+      <HeroSection />
+      
+      <main className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-20">
         <section className="featured-projects">
-          <h2 className="text-3xl font-semibold">Featured Projects</h2>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl heading-display text-gray-900 dark:text-white mb-6 text-balance">Featured Projects</h2>
+            <p className="text-xl body-large text-gray-600 dark:text-gray-400 text-balance">A showcase of my recent work and achievements</p>
+          </div>
+          
           {featuredProjects.length > 0 ? (
-            <div className="project-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {featuredProjects.map((project) => (
-                <div key={project.slug} className="project-card">
-                  <h3>{project.title}</h3>
-                  <p>{project.description}</p>
-                  <div className="tech-stack">
-                    {project.techStack.map((tech) => (
-                      <span key={tech} className="tech-tag">
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    {project.liveUrl && (
-                      <a
-                        href={project.liveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                <div key={project.slug} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{project.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{project.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {project.techStack.map((tech) => (
+                        <span key={tech} className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      {project.liveUrl && (
+                        <a
+                          href={project.liveUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+                        >
+                          Live Demo
+                        </a>
+                      )}
+                      {project.repoUrl && (
+                        <a
+                          href={project.repoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+                        >
+                          GitHub
+                        </a>
+                      )}
+                      <Link
+                        href={`/projects/${project.slug}`}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                       >
-                        Live Demo
-                      </a>
-                    )}
-                    {project.repoUrl && (
-                      <a
-                        href={project.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        GitHub
-                      </a>
-                    )}
-                    <Link
-                      href={`/projects/${project.slug}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Learn More
-                    </Link>
+                        Learn More
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              No featured projects yet. Check back soon!
-            </p>
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-600 dark:text-gray-400">
+                No featured projects yet. Check back soon!
+              </p>
+            </div>
           )}
         </section>
       </main>
-    </div>
+    </PageTransition>
   );
 }

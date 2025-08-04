@@ -2,13 +2,39 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { trackFormSubmission } from '../../components/Analytics';
+import AnimatedButton from '../../components/animations/AnimatedButton';
+import HoverCard from '../../components/animations/HoverCard';
+import PageTransition from '../../components/animations/PageTransition';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
-    subject: '',
+    email: '',
     message: ''
   });
+
+  const [errors, setErrors] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateField = (name: string, value: string) => {
+    switch (name) {
+      case 'name':
+        return value.trim().length < 2 ? 'Name must be at least 2 characters long' : '';
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return !emailRegex.test(value) ? 'Please enter a valid email address' : '';
+      case 'message':
+        return value.trim().length < 10 ? 'Message must be at least 10 characters long' : '';
+      default:
+        return '';
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -16,29 +42,102 @@ export default function ContactPage() {
       ...prev,
       [name]: value
     }));
+
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Generate mailto link
-    const mailtoUrl = `mailto:ferdz.waine.mai@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
-      `Name: ${formData.name}\n\nMessage:\n${formData.message}`
-    )}`;
-    
-    // Open default email client
-    window.location.href = mailtoUrl;
-    
-    // Reset form
-    setFormData({
-      name: '',
-      subject: '',
-      message: ''
-    });
+    // Validate all fields
+    const newErrors = {
+      name: validateField('name', formData.name),
+      email: validateField('email', formData.email),
+      message: validateField('message', formData.message)
+    };
+
+    setErrors(newErrors);
+
+    // Check if there are any errors
+    const hasErrors = Object.values(newErrors).some(error => error !== '');
+    if (hasErrors) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Try to submit via API first
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Track form submission
+        trackFormSubmission();
+        
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          message: ''
+        });
+        
+        alert(result.message || 'Message sent successfully!');
+      } else {
+        const errorResult = await response.json();
+        alert(errorResult.error || 'Failed to send message');
+        throw new Error('Failed to send message');
+      }
+    } catch (error) {
+      // Fallback to mailto
+      console.log('API submission failed, falling back to mailto:', error);
+      
+      // Track form submission
+      trackFormSubmission();
+      
+      // Generate mailto link
+      const mailtoUrl = `mailto:ferdz.waine.mai@gmail.com?subject=Contact from ${encodeURIComponent(formData.name)}&body=${encodeURIComponent(
+        `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
+      )}`;
+      
+      // Open default email client
+      window.location.href = mailtoUrl;
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        message: ''
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="font-sans min-h-screen p-8 pb-20 sm:p-20">
+    <PageTransition className="font-sans min-h-screen p-8 pb-20 sm:p-20">
       <main className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -51,7 +150,7 @@ export default function ContactPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Contact Form */}
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <HoverCard className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
             <h2 className="text-2xl font-semibold mb-6">Send a Message</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -67,26 +166,42 @@ export default function ContactPage() {
                   required
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
+                  onBlur={handleBlur}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors ${
+                    errors.name 
+                      ? 'border-red-500 dark:border-red-400' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                   placeholder="Your full name"
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+                )}
               </div>
 
-              {/* Subject Input */}
+              {/* Email Input */}
               <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Subject *
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Email *
                 </label>
                 <input
-                  type="text"
-                  id="subject"
-                  name="subject"
+                  type="email"
+                  id="email"
+                  name="email"
                   required
-                  value={formData.subject}
+                  value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                  placeholder="What&apos;s this about?"
+                  onBlur={handleBlur}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors ${
+                    errors.email 
+                      ? 'border-red-500 dark:border-red-400' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="your.email@example.com"
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+                )}
               </div>
 
               {/* Message Input */}
@@ -101,28 +216,41 @@ export default function ContactPage() {
                   rows={6}
                   value={formData.message}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors resize-vertical"
+                  onBlur={handleBlur}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors resize-vertical ${
+                    errors.message 
+                      ? 'border-red-500 dark:border-red-400' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                   placeholder="Tell me about your project, idea, or just say hello..."
                 />
+                {errors.message && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.message}</p>
+                )}
               </div>
 
               {/* Submit Button */}
-              <button
+              <AnimatedButton
                 type="submit"
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                disabled={isSubmitting}
+                className={`w-full px-6 py-3 rounded-lg font-medium focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${
+                  isSubmitting 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                Send Message
-              </button>
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </AnimatedButton>
             </form>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
               * This will open your default email client with the message pre-filled
             </p>
-          </div>
+          </HoverCard>
 
           {/* Contact Information */}
           <div className="space-y-8">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+            <HoverCard className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
               <h2 className="text-2xl font-semibold mb-6">Let&apos;s Connect</h2>
               
               <div className="space-y-6">
@@ -184,7 +312,7 @@ export default function ContactPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </HoverCard>
 
             {/* Additional Info */}
             <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -231,6 +359,6 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-    </div>
+    </PageTransition>
   );
 }
